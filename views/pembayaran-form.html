@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Form Pembayaran SPP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #f5f6fa;
+            padding: 20px;
+        }
+
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            color: #2d3436;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2d3436;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #dfe6e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #00b894;
+            box-shadow: 0 0 0 3px rgba(0,184,148,0.1);
+        }
+
+        button {
+            background: #00b894;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #00a884;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Pembayaran SPP</h2>
+        <form id="pembayaranForm">
+            <div class="form-group">
+                <label for="siswa">Siswa</label>
+                <select id="siswa" required>
+                    <option value="">Pilih Siswa</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="bulan">Bulan</label>
+                <select id="bulan" required>
+                    <option value="">Pilih Bulan</option>
+                    <option value="Januari">Januari</option>
+                    <option value="Februari">Februari</option>
+                    <option value="Maret">Maret</option>
+                    <option value="April">April</option>
+                    <option value="Mei">Mei</option>
+                    <option value="Juni">Juni</option>
+                    <option value="Juli">Juli</option>
+                    <option value="Agustus">Agustus</option>
+                    <option value="September">September</option>
+                    <option value="Oktober">Oktober</option>
+                    <option value="November">November</option>
+                    <option value="Desember">Desember</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="tahun">Tahun</label>
+                <select id="tahun" required>
+                    <option value="">Pilih Tahun</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="jumlah">Jumlah Pembayaran</label>
+                <input type="number" id="jumlah" required min="0" step="1000">
+            </div>
+            <button type="submit">Simpan</button>
+        </form>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const form = document.getElementById('pembayaranForm');
+        const siswaSelect = document.getElementById('siswa');
+        const tahunSelect = document.getElementById('tahun');
+
+        // Populate tahun
+        const currentYear = new Date().getFullYear();
+        for (let year = currentYear - 1; year <= currentYear + 1; year++) {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            tahunSelect.appendChild(option);
+        }
+
+        // Load daftar siswa
+        ipcRenderer.send('get-siswa-list');
+
+        ipcRenderer.on('siswa-list', (event, siswaList) => {
+            console.log('Received siswa list:', siswaList);
+            siswaSelect.innerHTML = '<option value="">Pilih Siswa</option>';
+            siswaList.forEach(siswa => {
+                const option = document.createElement('option');
+                option.value = siswa.nis;
+                option.textContent = `${siswa.nis} - ${siswa.nama}`;
+                siswaSelect.appendChild(option);
+            });
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const pembayaranData = {
+                nis: siswaSelect.value,
+                bulan: document.getElementById('bulan').value,
+                tahun: document.getElementById('tahun').value,
+                jumlah: parseInt(document.getElementById('jumlah').value),
+                status: 'pending',
+                tanggalBayar: new Date().toISOString()
+            };
+
+            ipcRenderer.send('add-pembayaran', pembayaranData);
+        });
+
+        // Handle response
+        ipcRenderer.on('pembayaran-saved', () => {
+            window.close();
+        });
+
+        ipcRenderer.on('error', (event, message) => {
+            alert('Error: ' + message);
+        });
+    </script>
+</body>
+</html> 
